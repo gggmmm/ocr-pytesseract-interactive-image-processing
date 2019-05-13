@@ -60,8 +60,7 @@ def updateImage():
     #create new
     global img2
     img2 = tk.PhotoImage(file=outfi)
-    l = tk.Label(w, image=img2, name='img_label')
-    l.pack()
+    l = tk.Label(w, image=img2, name='img_label').grid(row=2, columnspan=2)
 
 def updateThreshold(value):
     global threshold
@@ -120,56 +119,75 @@ def check_timings():
     h = w.nametowidget('exectime_pytess')
     h.config(text=str(avg_tesseract))    
 
-w = tk.Tk()
+def main():
+    global w
+    
+    w = tk.Tk()
+    w.title('Pytesseract interactive filtering')
 
-sp.call(['convert', infi, outfi])
+    sp.call(['convert', infi, outfi])
 
-# time to invoke the 'convert' function and execute it
-exectime_convert = tk.Label(w, text='', name='exectime_convert', font='Helvetica 16')
-exectime_convert.pack()
+    # pytesseract output
+    tesseract = tk.Label(w, text='', name='tesseract', font='Helvetica 16').grid(row=0, columnspan=2)
 
-# time to execute pytesseract image_to_string, i.e. read the image
-exectime_pytess = tk.Label(w, text='', name='exectime_pytess', font='Helvetica 16')
-exectime_pytess.pack()
+    img = tk.PhotoImage(file=infi)
+    l = tk.Label(w, image=img).grid(row=1, columnspan=2)
 
-check_timings_btn = tk.Button(w, text='Check timings with following amount of iterations', name='check_timings_btn', command=check_timings)
-check_timings_btn.pack()
+    img2 = tk.PhotoImage(file=outfi)
+    l2 = tk.Label(w, image=img2, name='img_label').grid(row=2, columnspan=2)
 
-num_of_iterations = tk.Text(w, name='num_of_iterations_text', width=4, height=1)
-num_of_iterations.insert(tk.END, str(NUM_OF_ITERATIONS))
-num_of_iterations.pack()
+    # ======== SCALES ========
+    lab_sre = tk.Label(w, name='lab_sre', text='Resize').grid(row=3, column=0, sticky=tk.W)
 
-# ======== SCALES ========
-sre = tk.Scale(w, relief=tk.FLAT, orient=tk.HORIZONTAL, length=300, resolution=25, from_=100, to=1000, tickinterval=900, command=updateSize)
-sre.set(200)
-sre.pack()
+    sre = tk.Scale(w, name='sre', orient=tk.HORIZONTAL, length=300, resolution=25, from_=100, to=1000, tickinterval=900, command=updateSize).grid(row=3, column=1)
+    h = w.nametowidget('sre')
+    h.set(200)
 
-sth = tk.Scale(w, orient=tk.HORIZONTAL, length=300, resolution=1, from_=0, to=100, tickinterval=100, command=updateThreshold)
-sth.set(85)
-sth.pack()
 
-sbr = tk.Scale(w, orient=tk.HORIZONTAL, length=300, resolution=1, from_=-100, to=100, tickinterval=100, command=updateBrightness)
-sbr.set(-42)
-sbr.pack()
+    lab_sth = tk.Label(w, name='lab_sth', text='Threshold').grid(row=4, column=0, sticky=tk.W)
 
-sco = tk.Scale(w, orient=tk.HORIZONTAL, length=300, resolution=1, from_=-100, to=100, tickinterval=100, command=updateContrast)
-sco.set(100)
-sco.pack()
+    sth = tk.Scale(w, name='sth', orient=tk.HORIZONTAL, length=300, resolution=1, from_=0, to=100, tickinterval=100, command=updateThreshold).grid(row=4, column=1)
+    h = w.nametowidget('sth')
+    h.set(85)
 
-sbo = tk.Scale(w, orient=tk.HORIZONTAL, length=300, resolution=1, from_=0, to=10, tickinterval=10, command=updateBorder)
-sbo.set(3)
-sbo.pack()
 
-# pytesseract output
-tesseract = tk.Label(w, text='', name='tesseract', font='Helvetica 16')
-tesseract.pack()
+    lab_sbr = tk.Label(w, name='lab_sbr', text='Brightness').grid(row=5, column=0, sticky=tk.W)
 
-img = tk.PhotoImage(file=infi)
-l = tk.Label(w, image=img)
-l.pack()
+    sbr = tk.Scale(w, name='sbr', orient=tk.HORIZONTAL, length=300, resolution=1, from_=-100, to=100, tickinterval=100, command=updateBrightness).grid(row=5, column=1)
+    h = w.nametowidget('sbr')
+    h.set(-42)
 
-img2 = tk.PhotoImage(file=outfi)
-l2 = tk.Label(w, image=img2, name='img_label')
-l2.pack()
 
-w.mainloop()
+    lab_sco = tk.Label(w, name='lab_sco', text='Contrast').grid(row=6, column=0, sticky=tk.W)
+
+    sco = tk.Scale(w, name='sco', orient=tk.HORIZONTAL, length=300, resolution=1, from_=-100, to=100, tickinterval=100, command=updateContrast).grid(row=6, column=1)
+    h = w.nametowidget('sco')
+    h.set(100)
+
+
+    lab_sbo = tk.Label(w, name='lab_sbo', text='Border size').grid(row=7, column=0, sticky=tk.W)
+
+    sbo = tk.Scale(w, name='sbo', orient=tk.HORIZONTAL, length=300, resolution=1, from_=0, to=10, tickinterval=10, command=updateBorder).grid(row=7, column=1)
+    h = w.nametowidget('sbo')
+    h.set(3)
+
+    # ====== /SCALES ======
+    
+    check_timings_btn = tk.Button(w, text='Check timings with following\n amount of iterations', name='check_timings_btn', command=check_timings).grid(row=8, column=0)
+
+    num_of_iterations = tk.Text(w, name='num_of_iterations_text', width=4, height=1).grid(row=8, column=1, sticky=tk.W)
+    h = w.nametowidget('num_of_iterations_text')
+    h.insert(tk.END, str(NUM_OF_ITERATIONS))
+    
+    # time to execute pytesseract image_to_string, i.e. read the image
+    lab_exec_pytess = tk.Label(w, name='lab_exec_pytess', text='Exec. time pytesseract [s]').grid(row=9, column=0, sticky=tk.W)
+    exectime_pytess = tk.Label(w, text='', name='exectime_pytess', font='Helvetica 16').grid(row=9, column=1)
+
+    # time to invoke the 'convert' function and execute it
+    lab_exec_conv = tk.Label(w, name='lab_exec_conv', text='Exec. time convert [s]').grid(row=10, column=0, sticky=tk.W)
+    exectime_convert = tk.Label(w, text='', name='exectime_convert', font='Helvetica 16').grid(row=10, column=1)
+        
+    w.mainloop()
+    
+if __name__ == '__main__':
+    main()
