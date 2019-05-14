@@ -19,11 +19,13 @@ class Controls(tk.Frame):
         threshold           = 50
         brightness          = 0
         contrast            = 0
+        border              = '3x3'
+        bordercolor         = 'White'
+        
+        current_state       = [] # size, threshold, brightness, contrast, border
+        
         NUM_OF_ITERATIONS   = 10
         last_command        = []
-        
-        border      = '3x3'
-        bordercolor = 'White'
         
         def __init__(self, master=None):
             super().__init__(master)
@@ -78,8 +80,28 @@ class Controls(tk.Frame):
             exectime_pytess = tk.Label(master, text='', name='exectime_pytess', font='Helvetica 16').grid(row=9, column=1)
 
             # time to invoke the 'convert' function and execute it
-            lab_exec_conv = tk.Label(master, name='lab_exec_conv', text='Exec. time convert [s]').grid(row=10, column=0, sticky=tk.W)
-            exectime_convert = tk.Label(master, text='', name='exectime_convert', font='Helvetica 16').grid(row=10, column=1)
+            lab_exec_conv       = tk.Label(master, name='lab_exec_conv', text='Exec. time convert [s]').grid(row=10, column=0, sticky=tk.W)
+            exectime_convert    = tk.Label(master, text='', name='exectime_convert', font='Helvetica 16').grid(row=10, column=1)
+            
+            saveCurrent = tk.Button(master, text='Save current configuration', command=self.saveCurrent).grid(row=11, column=0)
+            loadLast    = tk.Button(master, text='Load last configuration', command=self.loadLast).grid(row=11, column=1)
+            
+        def saveCurrent(self):
+            self.current_state = [self.size, self.threshold, self.brightness, self.contrast, self.border, self.bordercolor]
+        
+        def loadLast(self):
+            h = self.master.nametowidget('sre')
+            h.set(self.current_state[0])
+            h = self.master.nametowidget('sth')
+            h.set(self.current_state[1])
+            h = self.master.nametowidget('sbr')
+            h.set(self.current_state[2])
+            h = self.master.nametowidget('sco')
+            h.set(self.current_state[3])
+            h = self.master.nametowidget('sbo')
+            h.set(self.current_state[4])
+            
+            self.updateImage()
             
         def setTheOtherWindow(self, tow):
             self.theOtherWindow = tow
@@ -109,12 +131,15 @@ class Controls(tk.Frame):
             global outfi
         
             s0 = time.time()
-            self.last_command = ['convert', infi, '-resize', str(self.size)+'%', '-brightness-contrast', str(self.brightness)+'x'+str(self.contrast), '-threshold', str(self.threshold)+'%', '-border',self.border,'-bordercolor', self.bordercolor, outfi]
+            self.last_command = [   'convert', infi, '-resize', str(self.size)+'%', \
+                                    '-brightness-contrast', str(self.brightness)+'x'+str(self.contrast), \
+                                    '-threshold', str(self.threshold)+'%', '-border',self.border, \
+                                    '-bordercolor', self.bordercolor, outfi]
             sp.call(self.last_command)
             
             s1 = time.time()
             
-            read = pytesseract.image_to_string(Image.open(outfi))
+            read = pytesseract.image_to_string(Image.open(outfi), lang='eng')
             s2 = time.time()
             
             
@@ -199,7 +224,7 @@ def main():
 
     second_win = tk.Toplevel(root)
     second_win.title('Display - Pytesseract interactive filtering')
-    second_win.geometry('+650+150')#str(int(ws/2))+'x'+str(int(hs))+'+'+str(int(ws/2))+'+0')
+    second_win.geometry('+700+150')#str(int(ws/2))+'x'+str(int(hs))+'+'+str(int(ws/2))+'+0')
     d = Display(second_win)
     
     controls.setTheOtherWindow(second_win)
