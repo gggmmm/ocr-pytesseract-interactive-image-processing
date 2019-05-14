@@ -19,10 +19,10 @@ class Controls(tk.Frame):
         threshold           = 50
         brightness          = 0
         contrast            = 0
-        border              = '3x3'
+        border              = 3
         bordercolor         = 'White'
         
-        current_state       = [] # size, threshold, brightness, contrast, border
+        current_state       = [100, 50, 0, 0, 3] # size, threshold, brightness, contrast, border
         
         NUM_OF_ITERATIONS   = 10
         last_command        = []
@@ -69,23 +69,30 @@ class Controls(tk.Frame):
 
             # ====== /SCALES ======
             
-            check_timings_btn = tk.Button(master, text='Check timings with following\n amount of iterations', name='check_timings_btn', command=self.check_timings).grid(row=8, column=0)
-
-            num_of_iterations = tk.Text(master, name='num_of_iterations_text', width=4, height=1).grid(row=8, column=1, sticky=tk.W)
+            saveCurrent = tk.Button(master, text='Save current configuration', command=self.saveCurrent).grid(row=8, column=0)
+            loadLast    = tk.Button(master, text='Load last configuration', command=self.loadLast).grid(row=8, column=1)
+            
+            generateCommand = tk.Button(master, text='Generate command', command=self.generateCommand).grid(row=9, column=0)
+            commandOutput   = tk.Text(master, wrap=tk.WORD, name='commandOutput', height=3, width=40, font='Helvetica 8').grid(row=9, column=1)
+            
+            check_timings_btn = tk.Button(master, text='Check timings with following\n amount of iterations', name='check_timings_btn', command=self.check_timings).grid(row=10, column=0)
+            num_of_iterations = tk.Text(master, name='num_of_iterations_text', width=6, height=1).grid(row=10, column=1)
             h = master.nametowidget('num_of_iterations_text')
             h.insert(tk.END, str(self.NUM_OF_ITERATIONS))
             
             # time to execute pytesseract image_to_string, i.e. read the image
-            lab_exec_pytess = tk.Label(master, name='lab_exec_pytess', text='Exec. time pytesseract [s]').grid(row=9, column=0, sticky=tk.W)
-            exectime_pytess = tk.Label(master, text='', name='exectime_pytess', font='Helvetica 16').grid(row=9, column=1)
+            lab_exec_pytess = tk.Label(master, name='lab_exec_pytess', text='Exec. time pytesseract [s]').grid(row=11, column=0, sticky=tk.W)
+            exectime_pytess = tk.Label(master, text='', name='exectime_pytess', font='Helvetica 16').grid(row=11, column=1)
 
             # time to invoke the 'convert' function and execute it
-            lab_exec_conv       = tk.Label(master, name='lab_exec_conv', text='Exec. time convert [s]').grid(row=10, column=0, sticky=tk.W)
-            exectime_convert    = tk.Label(master, text='', name='exectime_convert', font='Helvetica 16').grid(row=10, column=1)
-            
-            saveCurrent = tk.Button(master, text='Save current configuration', command=self.saveCurrent).grid(row=11, column=0)
-            loadLast    = tk.Button(master, text='Load last configuration', command=self.loadLast).grid(row=11, column=1)
-            
+            lab_exec_conv       = tk.Label(master, name='lab_exec_conv', text='Exec. time convert [s]').grid(row=12, column=0, sticky=tk.W)
+            exectime_convert    = tk.Label(master, text='', name='exectime_convert', font='Helvetica 16').grid(row=12, column=1)            
+        
+        def generateCommand(self):
+            h = self.master.nametowidget('commandOutput')
+            h.delete('1.0', tk.END)
+            h.insert(tk.END, ' '.join(self.last_command))
+        
         def saveCurrent(self):
             self.current_state = [self.size, self.threshold, self.brightness, self.contrast, self.border, self.bordercolor]
         
@@ -123,34 +130,24 @@ class Controls(tk.Frame):
             self.updateImage()
 
         def updateBorder(self, value):
-            self.border = str(value)+'x'+str(value)
+            self.border = value
             self.updateImage()
             
         def updateImage(self):
             global infi
             global outfi
-        
-            s0 = time.time()
+            
             self.last_command = [   'convert', infi, '-resize', str(self.size)+'%', \
                                     '-brightness-contrast', str(self.brightness)+'x'+str(self.contrast), \
-                                    '-threshold', str(self.threshold)+'%', '-border',self.border, \
+                                    '-threshold', str(self.threshold)+'%', \
+                                    '-border',str(self.border)+'x'+str(self.border), \
                                     '-bordercolor', self.bordercolor, outfi]
             sp.call(self.last_command)
-            
-            s1 = time.time()
-            
-            read = pytesseract.image_to_string(Image.open(outfi), lang='eng')
-            s2 = time.time()
-            
+                        
+            read = pytesseract.image_to_string(Image.open(outfi), lang='eng')           
             
             h = self.theOtherWindow.nametowidget('tesseract')
             h.config(text=read)
-            
-            h = self.master.nametowidget('exectime_convert')
-            h.config(text=str(s1-s0))
-            
-            h = self.master.nametowidget('exectime_pytess')
-            h.config(text=str(s2-s1))
             
             # redraw update image
             # destroy old
@@ -160,7 +157,7 @@ class Controls(tk.Frame):
             #create new
             self.img2 = tk.PhotoImage(file=outfi)
             l = tk.Label(self.theOtherWindow, image=self.img2, name='img_label').grid(row=2)
-        
+            
         def check_timings(self):
             global outfi
 
@@ -224,7 +221,7 @@ def main():
 
     second_win = tk.Toplevel(root)
     second_win.title('Display - Pytesseract interactive filtering')
-    second_win.geometry('+700+150')#str(int(ws/2))+'x'+str(int(hs))+'+'+str(int(ws/2))+'+0')
+    second_win.geometry('+750+150')#str(int(ws/2))+'x'+str(int(hs))+'+'+str(int(ws/2))+'+0')
     d = Display(second_win)
     
     controls.setTheOtherWindow(second_win)
