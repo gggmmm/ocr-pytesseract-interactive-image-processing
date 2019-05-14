@@ -1,4 +1,4 @@
-# pytesseract-interactive-filtering
+# ocr-pytesseract-interactive-image-processing
 Simple GUI-based script to help you best pre-filter your image before being read by pytesseract.
 
 To process the image, 'convert' by ImageMagick is used.
@@ -24,12 +24,14 @@ In the Controls window (left) you can set the following options that affect the 
 Coming soon (in order of priority/feasibility):
 * ~~save current settings/load last saved settings~~
 * ~~show the full 'convert' function with all used options~~
-* Add functions erode, dilate, open, close, smooth with shapes diamond, square, octagon disk, plus, cross, ring, rectangle ([check this out](https://www.imagemagick.org/Usage/morphology/))
 * Add image rotation
+* Pick image directly from screen
+* Add functions erode, dilate, open, close, smooth with shapes diamond, square, octagon disk, plus, cross, ring, rectangle ([check this out](https://www.imagemagick.org/Usage/morphology/))
 * enter parameters through text-box (to avoid slow  slider)
 * personalized slider-step
 * ordering of the options. Currently the order is from top to bottom, but doing for example thresholding before resizing may influence the result.
 * checkbox to enable/disable each slider
+* integrate with trevis-ci.org, codecov.io, codeclimate.com
 
 Tested with:
 - linux mint 19.1
