@@ -22,10 +22,11 @@ In the Controls window (left) you can set the following options that affect the 
 
 
 Coming soon (in order of priority/feasibility):
-* ~~save current settings/load last saved settings~~
-* ~~show the full 'convert' function with all used options~~
-* Add image rotation
-* Pick image directly from screen
+* save current settings/load last saved settings ✔️
+* show the full 'convert' function with all used options ✔️
+* add image rotation ✔️
+* pick image directly from screen
+* add image with drag and drop
 * Add functions erode, dilate, open, close, smooth with shapes diamond, square, octagon disk, plus, cross, ring, rectangle ([check this out](https://www.imagemagick.org/Usage/morphology/))
 * enter parameters through text-box (to avoid slow  slider)
 * personalized slider-step

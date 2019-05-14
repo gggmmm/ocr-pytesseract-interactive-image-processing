@@ -22,8 +22,10 @@ class Controls(tk.Frame):
         contrast            = 0
         border              = 3
         bordercolor         = 'White'
+        rotation            = 0
+        rotationdir         = '' # this value is fixed once and remains the same, I always use the original image as input
         
-        current_state       = [100, 50, 0, 0, 3] # size, threshold, brightness, contrast, border
+        current_state       = [100, 50, 0, 0, 3, 0] # size, threshold, brightness, contrast, border, rotation
         
         NUM_OF_ITERATIONS   = 10
         last_command        = []
@@ -33,7 +35,17 @@ class Controls(tk.Frame):
             
             self.master = master
             
-            # ======== SCALES ========
+            # I need to figure out widthxheight in order to use '-rotate'. See https://imagemagick.org/script/command-line-options.php#rotate
+            global infi            
+            im = Image.open(infi)
+            width, height = im.size
+            if width > height:
+                self.rotationdir = '>'
+            else:
+                self.rotationdir = '<'
+            
+            # Creating GUI
+            # ======== SCALES+LABELS ========
             row = 0
             lab_sre = tk.Label(master, name='lab_sre', text='Resize').grid(row=row, column=0, sticky=tk.W)
 
@@ -71,8 +83,17 @@ class Controls(tk.Frame):
             sbo = tk.Scale(master, name='sbo', orient=tk.HORIZONTAL, length=300, resolution=1, from_=0, to=10, tickinterval=10, command=self.updateBorder).grid(row=row, column=1)
             h = master.nametowidget('sbo')
             h.set(3)
+            
+            row += 1
+            lab_rot = tk.Label(master, name='lab_rot', text='Rotation').grid(row=row, column=0, sticky=tk.W)
+
+            sro = tk.Scale(master, name='sro', orient=tk.HORIZONTAL, length=300, resolution=1, from_=-180, to=180, tickinterval=90, command=self.updateRotation).grid(row=row, column=1)
+            h = master.nametowidget('sro')
+            h.set(0)
 
             # ====== /SCALES ======
+            
+            # ====== BUTTONS+TEXT =======
             row += 1
             saveCurrent = tk.Button(master, text='Save current configuration', command=self.saveCurrent).grid(row=row, column=0)
             loadLast    = tk.Button(master, text='Load last configuration', command=self.loadLast).grid(row=row, column=1)
@@ -95,7 +116,7 @@ class Controls(tk.Frame):
             row += 1
             # time to invoke the 'convert' function and execute it
             lab_exec_conv       = tk.Label(master, name='lab_exec_conv', text='Exec. time convert [s]').grid(row=row, column=0, sticky=tk.W)
-            exectime_convert    = tk.Label(master, text='', name='exectime_convert', font='Helvetica 16').grid(row=row, column=1)            
+            exectime_convert    = tk.Label(master, text='', name='exectime_convert', font='Helvetica 16').grid(row=row, column=1)
         
         def generateCommand(self):
             h = self.master.nametowidget('commandOutput')
@@ -103,7 +124,7 @@ class Controls(tk.Frame):
             h.insert(tk.END, ' '.join(self.last_command))
         
         def saveCurrent(self):
-            self.current_state = [self.size, self.threshold, self.brightness, self.contrast, self.border, self.bordercolor]
+            self.current_state = [self.size, self.threshold, self.brightness, self.contrast, self.border, self.rotation]
         
         def loadLast(self):
             h = self.master.nametowidget('sre')
@@ -116,12 +137,18 @@ class Controls(tk.Frame):
             h.set(self.current_state[3])
             h = self.master.nametowidget('sbo')
             h.set(self.current_state[4])
+            h = self.master.nametowidget('sro')
+            h.set(self.current_state[5])
             
             self.updateImage()
             
         def setTheOtherWindow(self, tow):
             self.theOtherWindow = tow
-                
+        
+        def updateRotation(self, value):
+            self.rotation = value
+            self.updateImage()
+        
         def updateThreshold(self, value):
             self.threshold = value
             self.updateImage()
@@ -146,11 +173,14 @@ class Controls(tk.Frame):
             global infi
             global outfi
             
-            self.last_command = [   'convert', infi, '-resize', str(self.size)+'%', \
+            self.last_command = [   'convert', infi, \
+                                    '-rotate', str(self.rotation)+self.rotationdir, \
+                                    '-resize', str(self.size)+'%', \
                                     '-brightness-contrast', str(self.brightness)+'x'+str(self.contrast), \
                                     '-threshold', str(self.threshold)+'%', \
                                     '-border',str(self.border)+'x'+str(self.border), \
                                     '-bordercolor', self.bordercolor, outfi]
+            
             sp.call(self.last_command)
                         
             read = pytesseract.image_to_string(Image.open(outfi), lang='eng')           
@@ -172,8 +202,8 @@ class Controls(tk.Frame):
             h = self.master.nametowidget('num_of_iterations_text')
             self.NUM_OF_ITERATIONS = int(h.get('current linestart', tk.END))
 
-            avg_convert = 0
-            avg_tesseract = 0
+            avg_convert     = 0
+            avg_tesseract   = 0
             global outfi
             for i in range(self.NUM_OF_ITERATIONS):
                 s = time.time()
@@ -184,8 +214,8 @@ class Controls(tk.Frame):
                 read = pytesseract.image_to_string(Image.open(outfi))
                 s2 = time.time()
                 
-                avg_convert += s1-s
-                avg_tesseract += s2-s1
+                avg_convert     += s1-s
+                avg_tesseract   += s2-s1
 
             avg_convert     /= self.NUM_OF_ITERATIONS
             avg_tesseract   /= self.NUM_OF_ITERATIONS
@@ -212,7 +242,7 @@ class Display(tk.Frame):
             tesseract = tk.Label(master, text='', name='tesseract', font='Helvetica 16').grid(row=row)
             
             global infi
-            global outfi            
+            global outfi
             row += 1
             self.img = tk.PhotoImage(file=infi)
             l = tk.Label(master, image=self.img).grid(row=row)
@@ -224,26 +254,27 @@ class Display(tk.Frame):
             l2 = tk.Label(master, image=self.img2, name='img_label').grid(row=row)
     
 def main():    
+    # just to create an output file immediately
+    # TODO: check if image exists and non 'empty'
+    global infi
+    global outfi
+    sp.call(['convert', infi, outfi])
+    
     root = tk.Tk()
     root.title('Controls - Ocr pytesseract interactive image processing')
     controls = Controls(root)
     
     # get screen width and height
-    ws = root.winfo_screenwidth() # width of the screen
-    hs = root.winfo_screenheight() # height of the screen
-    root.geometry('+150+150') #str(int(ws/2))+'x'+str(int(hs))+'+0+0')
+    #ws = root.winfo_screenwidth() # width of the screen
+    #hs = root.winfo_screenheight() # height of the screen
+    root.geometry('+150+150')
 
     second_win = tk.Toplevel(root)
     second_win.title('Display - Ocr pytesseract interactive image processing')
-    second_win.geometry('+750+150')#str(int(ws/2))+'x'+str(int(hs))+'+'+str(int(ws/2))+'+0')
+    second_win.geometry('+750+150')
     d = Display(second_win)
     
     controls.setTheOtherWindow(second_win)
-    
-    # just to create an output file immediately
-    global infi
-    global outfi
-    sp.call(['convert', infi, outfi])
     
     root.mainloop()
     
