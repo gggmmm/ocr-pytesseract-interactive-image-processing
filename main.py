@@ -4,6 +4,10 @@ import time
 from PIL import Image, ImageTk
 import pytesseract
 
+from pynput             import mouse, keyboard
+from pynput.mouse       import Button
+from pynput.keyboard    import Key
+
 input_dir   = './'
 input_file  = 'test.png'
 infi        = input_dir+input_file
@@ -30,6 +34,8 @@ class Controls(tk.Frame):
         NUM_OF_ITERATIONS   = 10
         last_command        = []
         
+        img1 = None
+        
         def __init__(self, master=None):
             super().__init__(master)
             
@@ -47,6 +53,10 @@ class Controls(tk.Frame):
             # Creating GUI
             # ======== SCALES+LABELS ========
             row = 0
+            
+            selectImageFromScreen = tk.Button(master, name='selectImageFromScreenBtn', text='Select image from screen', command=self.selectImageFromScreen).grid(row=row, column=0)
+            
+            row += 1
             lab_sre = tk.Label(master, name='lab_sre', text='Resize').grid(row=row, column=0, sticky=tk.W)
 
             sre = tk.Scale(master, name='sre', orient=tk.HORIZONTAL, length=300, resolution=25, from_=100, to=1000, tickinterval=900, command=self.updateSize).grid(row=row, column=1)
@@ -117,6 +127,120 @@ class Controls(tk.Frame):
             # time to invoke the 'convert' function and execute it
             lab_exec_conv       = tk.Label(master, name='lab_exec_conv', text='Exec. time convert [s]').grid(row=row, column=0, sticky=tk.W)
             exectime_convert    = tk.Label(master, text='', name='exectime_convert', font='Helvetica 16').grid(row=row, column=1)
+        
+        # === MOUSE STUFF ===
+        mouseListener = None
+        keyboardListener = None
+        transparentLayer = None
+        def selectImageFromScreen(self):
+            if self.mouseListener==None and self.keyboardListener==None:
+                self.mouseListener = mouse.Listener(on_click=self.on_click)
+                self.mouseListener.start()
+                
+                self.keyboardListener = keyboard.Listener(on_press=self.on_press)
+                self.keyboardListener.start()
+                
+                # make window disappear
+                self.theOtherWindow.lower()
+                self.master.lower()
+                
+                #create transparent layer-window on top
+                
+                ws = self.master.winfo_screenwidth() # width of the screen
+                hs = self.master.winfo_screenheight() # height of the screen
+
+                second_win = tk.Toplevel(self.master, bg='red', cursor='sizing')
+                second_win.geometry(str(ws)+'x'+str(hs))
+                
+                second_win.wait_visibility(second_win)
+                second_win.wm_attributes('-alpha',0.1)
+                
+                self.transparentLayer = second_win
+        
+        def on_press(self, key):
+            if Key.esc==key:
+                self.mouseListener.stop()
+                self.keyboardListener.stop()
+                self.transparentLayer.destroy()
+                
+                self.mouseListener = None
+                self.keyboardListener = None
+                self.transparentLayer = None
+                
+                self.mouseState = 0
+                self.startXY    = (0,0)
+                self.endXY      = (0,0)
+        
+        mouseState  = 0
+        startXY     = (0,0)
+        endXY       = (0,0)
+        def on_click(self, x, y, button, pressed):
+            # TODO: (?) check selected area, if too small just ignore it (10px*10px??)
+            # TODO: make appear dialog box "want to use this image?" so to avoid the problem all together
+            # TODO: make pressing "esc" stop the acquisition, without replacing the image. need to bind a command to that key. see pynput
+            if self.mouseState==0 and pressed and button==Button.left:
+                self.startXY = (x,y)
+                self.mouseState = 1
+            elif self.mouseState==1 and not pressed and button==Button.left:
+                self.mouseListener.stop()
+                self.mouseListener = None
+                
+                self.keyboardListener.stop()
+                self.keyboardListener = None
+                
+                self.endXY = (x,y)
+                self.mouseState = 0
+                
+                self.transparentLayer.destroy()
+                time.sleep(0.15) # a little wait or the red layer is caught
+                
+                self.completeImageAcquisition(self.startXY, self.endXY) # scrot take pic
+                self.setNewOriginalImage()
+                self.updateImage()
+            else:
+                print('why am I here? shouldnt be reachable')
+        
+        def completeImageAcquisition(self, startXY, endXY):
+            global infi
+            
+            xstart  = startXY[0]
+            xend    = endXY[0]
+            ystart  = startXY[1]
+            yend    = endXY[1]
+            
+            width   = xend - xstart
+            height  = yend - ystart
+            
+            x,y = [0]*2
+            
+            if width<0 and height<0: # going NW
+                x,y = xend, yend
+            elif width>0 and height>0: # going SE
+                x,y = xstart, ystart
+            elif width<0 and height>0: # going SW
+                x,y = xend, ystart
+            elif width>0 and height<0: # going NE
+                x,y = xstart, yend
+            
+            width = abs(width)
+            height = abs(height)
+            
+            sp.call(['scrot',infi])
+            sp.call(['convert', infi, '-crop', str(width)+'x'+str(height)+'+'+str(x)+'+'+str(y), infi])
+            
+        def setNewOriginalImage(self):
+            # redraw update image
+            # destroy old
+            h = self.theOtherWindow.nametowidget('original_img_label')
+            h.destroy()
+            
+            #create new
+            global updating_image_row
+            global infi
+            self.img1 = tk.PhotoImage(file=infi)
+            l = tk.Label(self.theOtherWindow, image=self.img1, name='original_img_label').grid(row=updating_image_row-1)
+            
+        # === /MOUSE STUFF ===
         
         def generateCommand(self):
             h = self.master.nametowidget('commandOutput')
@@ -245,7 +369,7 @@ class Display(tk.Frame):
             global outfi
             row += 1
             self.img = tk.PhotoImage(file=infi)
-            l = tk.Label(master, image=self.img).grid(row=row)
+            l = tk.Label(master, name='original_img_label', image=self.img).grid(row=row)
             
             row += 1
             global updating_image_row
