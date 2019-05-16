@@ -1,5 +1,5 @@
 # ocr-pytesseract-interactive-image-processing
-Simple GUI-based script to help you best pre-filter your image before being read by pytesseract.
+Simple GUI-based application to help you best pre-filter your image before being read by pytesseract.
 
 To process the image, 'convert' by ImageMagick is used.
 
